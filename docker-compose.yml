@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    build: .         # 从当前目录的 Dockerfile 构建镜像
+    container_name: attendance_web_app # 容器名称
+    ports:
+      - "5001:5000" # 将宿主机的 5001 端口映射到容器的 5000 端口 (如果需要，可以更改 5001)
+    # volumes:
+      # 可选：挂载当前目录用于开发（无需重新构建即可反映代码更改）
+      # 对于生产部署，请删除此行以使用镜像中烘焙的代码。
+      # - .:/app
+    environment:
+      # 重要提示：在此处设置一个强大、唯一的密钥！
+      # 使用以下命令生成：python -c 'import os; print(os.urandom(24).hex())'
+      - FLASK_SECRET_KEY=replace_this_with_a_real_secret_key_32_chars_or_more # 示例: 3a9f8b2d.... (请务必替换！)
+      - FLASK_ENV=production # 确保 Flask 以生产模式运行
+      # 如果需要，可以在此处添加其他环境变量
+    restart: unless-stopped # 重启策略
