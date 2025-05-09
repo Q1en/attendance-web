@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>使用宁波大学统一身份认证登录</h2>
+<p>请输入您的宁波大学学号和密码进行登录。</p>
+<form method="POST" action="{{ url_for('login') }}">
+    <div class="form-group">
+        <label for="username">学号 (Username):</label>
+        <input type="text" id="username" name="username" required placeholder="输入您的学号">
+    </div>
+    <div class="form-group">
+        <label for="password">密码 (Password):</label>
+        <input type="password" id="password" name="password" required placeholder="输入您的密码">
+    </div>
+    <button type="submit" class="btn">登录</button>
+</form>
+{% endblock %}

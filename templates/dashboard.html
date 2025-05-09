@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>仪表盘</h2> <div class="actions">
+     <form method="GET" action="{{ url_for('refresh_courses') }}" style="display: inline;">
+        <button type="submit" class="btn btn-secondary">刷新课程列表</button> </form>
+</div>
+
+
+{% if courses %}
+    <h3>选择课程和操作</h3> <form method="POST" action="{{ url_for('signin') }}" id="signin-form">
+        <div class="course-list">
+            {% for course in courses %}
+            <div class="course-item">
+                <input type="radio" id="{{ course.ui_id }}" name="selected_course" value="{{ course.ui_id }}" required {% if loop.first %}checked{% endif %}>
+                <label for="{{ course.ui_id }}">
+                    <strong>{{ course.get('courseName', '未知课程') }}</strong><br> 教师: {{ course.get('teacherName', '无') }}<br> 教室: {{ course.get('classroomName', '无') }}<br> 状态: <span class="status-{{ 'ready' if course.get('attendanceId') else 'pending' }}">
+                        {{ '签到已开始' if course.get('attendanceId') else '签到未开始' }} </span>
+                    <input type="hidden" name="{{ course.ui_id }}_plan_id" value="{{ course.get('coursePlanId', '') }}">
+                    <input type="hidden" name="{{ course.ui_id }}_att_id" value="{{ course.get('attendanceId', '') }}">
+                </label>
+            </div>
+            {% else %}
+            <p>当前没有可显示的课程。</p> {% endfor %}
+        </div>
+
+        <div class="signin-options">
+            <h4>签到方式:</h4> <div class="form-group">
+                <input type="radio" id="action_brute" name="action_type" value="brute_force" checked>
+                <label for="action_brute">尝试签到 (暴力破解)</label> </div>
+             <div class="form-group">
+                 <input type="radio" id="action_manual" name="action_type" value="manual">
+                 <label for="action_manual">使用签到码签到:</label> <input type="number" id="manual_code" name="manual_code" min="0" max="9999" step="1" placeholder="0000" pattern="\d{4}">
+             </div>
+
+        </div>
+
+        <button type="submit" class="btn" id="submit-button">执行签到</button> <div id="loading-indicator" style="display: none; margin-top: 10px;">
+             <p><strong>正在处理签到... 这可能需要一些时间，特别是暴力破解。请稍候。</strong></p> <div class="spinner"></div>
+         </div>
+    </form>
+{% elif message %}
+     <p>{{ message }}</p>
+{% else %}
+    <p>无法加载课程。请检查您的 JSESSIONID 或尝试刷新。</p> {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 简单的脚本，用于禁用手动代码输入（除非选中）并显示加载指示器
+    const manualRadio = document.getElementById('action_manual');
+    const bruteRadio = document.getElementById('action_brute');
+    const manualCodeInput = document.getElementById('manual_code');
+    const signinForm = document.getElementById('signin-form');
+    const submitButton = document.getElementById('submit-button');
+    const loadingIndicator = document.getElementById('loading-indicator');
+
+    function toggleManualInput() {
+        manualCodeInput.disabled = !manualRadio.checked;
+        if (manualRadio.checked) {
+            manualCodeInput.required = true; // 如果选中手动，则设为必填
+        } else {
+            manualCodeInput.required = false;
+        }
+    }
+
+    if (manualRadio && bruteRadio && manualCodeInput) {
+        manualRadio.addEventListener('change', toggleManualInput);
+        bruteRadio.addEventListener('change', toggleManualInput);
+        // 初始状态
+        toggleManualInput();
+    }
+
+    if (signinForm && submitButton && loadingIndicator) {
+        signinForm.addEventListener('submit', function(event) { // 添加 event 参数
+             // 如果选择了手动签到，进行基本验证
+             if (manualRadio.checked && !manualCodeInput.value.match(/^\d{1,4}$/)) {
+                alert('请输入有效的 4 位签到码 (0000-9999)。'); // 改为中文
+                event.preventDefault(); // 阻止表单提交
+                return;
+             }
+
+             // 检查是否选择了有效的（签到已开始的）课程
+             const selectedCourseRadio = document.querySelector('input[name="selected_course"]:checked');
+             if (selectedCourseRadio) {
+                const courseId = selectedCourseRadio.value;
+                const attendanceIdInput = document.querySelector(`input[name="${courseId}_att_id"]`);
+                // 检查是否存在 attendanceId 且其值不为空
+                if (!attendanceIdInput || !attendanceIdInput.value) {
+                     alert('所选课程的签到尚未开始 (缺少 Attendance ID)。请刷新或选择其他课程。'); // 改为中文
+                     event.preventDefault(); // 阻止表单提交
+                     return;
+                }
+             } else {
+                 alert('请选择一门课程。'); // 改为中文
+                 event.preventDefault(); // 阻止表单提交
+                 return;
+             }
+
+
+            submitButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+            // 表单将提交，并在后端处理完成后重新加载页面。
+        });
+    }
+
+</script>
+{% endblock %}

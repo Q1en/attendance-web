@@ -1,1 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN"> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBU 考勤助手</title> <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">考勤助手</a> {% if session.get('jsessionid') %}
+            <ul class="nav-links">
+                <li><a href="{{ url_for('dashboard') }}">仪表盘</a></li> <li><a href="{{ url_for('logout') }}">登出</a></li> </ul>
+            {% endif %}
+        </div>
+    </nav>
 
+    <div class="container main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <div class="container">
+            NBU Attendance Helper by Q1en </div>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
