@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 # 确保从我们创建的 attendance_logic.py 文件导入
 from attendance_logic import get_courses, run_brute_force_sign_in, run_single_sign_in
+from captcha_solver import preprocess_image, recognize_text_from_image
 
 # 新增导入
 import requests
@@ -11,6 +12,7 @@ from urllib.parse import urlparse, parse_qs
 import base64
 from Crypto.Cipher import AES
 import random
+import time
 import traceback # 用于打印详细错误
 
 app = Flask(__name__)
@@ -64,7 +66,6 @@ def login():
             flash('用户名和密码均不能为空。', 'error')
             return render_template('login.html')
 
-        # 初始化 requests 会话对象
         req_session = requests.Session()
         base_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.2228.0"
@@ -73,12 +74,8 @@ def login():
 
         try:
             # 第一步：GET 请求登录页面
-            print(f"ℹ️ [WEB_LOGIN] 正在访问登录页面: {login_page_url}")
             response_login_page = req_session.get(login_page_url, headers=base_headers, timeout=10)
-            response_login_page.raise_for_status() # 如果状态码不是2xx，则抛出异常
-            print("✅ [WEB_LOGIN] 成功获取登录页面")
-
-            # 第二步：解析 HTML，提取 lt, execution 和 pwdDefaultEncryptSalt
+            response_login_page.raise_for_status()
             soup = BeautifulSoup(response_login_page.text, 'lxml')
             lt_input = soup.find('input', {'name': 'lt'})
             execution_input = soup.find('input', {'name': 'execution'})
@@ -86,19 +83,52 @@ def login():
 
             if not lt_input or not execution_input or not salt_input:
                 flash('登录失败：未能从登录页面提取必要参数，学校登录页面可能已更新。', 'error')
-                print(f"❌ [WEB_LOGIN] 未能找到 lt, execution 或 salt 字段。")
                 return render_template('login.html')
 
             lt = lt_input.get('value')
             execution = execution_input.get('value')
             password_salt = salt_input.get('value')
-            print(f"✅ [WEB_LOGIN] 成功提取登录参数: lt={lt[:10]}..., execution={execution[:10]}..., salt={password_salt[:10]}...")
 
-            # 使用盐值加密明文密码
+            # 判断是否需要验证码
+            need_captcha = False
+            try:
+                captcha_check_url = f'https://uis.nbu.edu.cn/authserver/needCaptcha.html?username={username_input}&_={int(time.time()*1000)}'
+                captcha_check_resp = req_session.get(captcha_check_url, headers=base_headers, timeout=10, verify=False)
+                captcha_check_resp.raise_for_status()
+                need_captcha = "true" in captcha_check_resp.text.lower()
+            except Exception as e:
+                # 网络异常时，默认需要验证码以保证安全
+                need_captcha = True
+
+            captcha_value = ""
+            if need_captcha:
+                # 获取验证码图片并自动识别
+                captcha_img_url = f'https://uis.nbu.edu.cn/authserver/captcha.html?{int(time.time()*1000)}'
+                captcha_img_resp = req_session.get(captcha_img_url, headers=base_headers, timeout=10, verify=False)
+                if captcha_img_resp.status_code == 200:
+                    temp_captcha_filename = "web_temp_captcha.jpg"
+                    with open(temp_captcha_filename, 'wb') as f:
+                        f.write(captcha_img_resp.content)
+                    processed_image = preprocess_image(temp_captcha_filename)
+                    if processed_image:
+                        recognized_text = recognize_text_from_image(processed_image, lang='eng')
+                        if recognized_text:
+                            captcha_value = recognized_text
+                        else:
+                            flash('验证码识别失败，请重试。', 'error')
+                            return render_template('login.html')
+                    else:
+                        flash('验证码图片预处理失败，请重试。', 'error')
+                        return render_template('login.html')
+                    os.remove(temp_captcha_filename)
+                    if os.path.exists("processed_captcha.png"):
+                        os.remove("processed_captcha.png")
+                else:
+                    flash('获取验证码图片失败，请重试。', 'error')
+                    return render_template('login.html')
+
             encrypted_password = encryptAES_local(plain_password_input, password_salt)
-            print(f"✅ [WEB_LOGIN] 密码已加密 (前10字符): {encrypted_password[:10]}...")
 
-            # 第三步：构造登录表单数据
             login_data = {
                 "username": username_input,
                 "password": encrypted_password,
@@ -108,16 +138,16 @@ def login():
                 "_eventId": "submit",
                 "rmShown": "1"
             }
+            if need_captcha:
+                login_data["captchaResponse"] = captcha_value
 
-            # 第四步：POST 请求模拟登录
             post_headers = base_headers.copy()
             post_headers.update({
                 "Origin": "https://uis.nbu.edu.cn",
                 "Referer": login_page_url,
                 "Content-Type": "application/x-www-form-urlencoded"
             })
-            login_post_url = login_page_url # POST到同一个URL
-            print(f"ℹ️ [WEB_LOGIN] 正在尝试使用用户名密码登录到: {login_post_url}")
+            login_post_url = login_page_url
             response_login = req_session.post(login_post_url, headers=post_headers, data=login_data, allow_redirects=False, timeout=10)
 
             # 第五步：处理重定向，提取 ticket

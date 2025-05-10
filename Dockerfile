@@ -12,6 +12,11 @@ COPY requirements.txt .
 # --trusted-host to avoid warnings/errors behind proxies if needed (optional)
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the rest of the application code into the container at /app
 COPY . .
