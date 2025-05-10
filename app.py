@@ -89,7 +89,7 @@ def login():
             execution = execution_input.get('value')
             password_salt = salt_input.get('value')
 
-            # 判断是否需要验证码
+            # 第二步：判断是否需要验证码
             need_captcha = False
             try:
                 captcha_check_url = f'https://uis.nbu.edu.cn/authserver/needCaptcha.html?username={username_input}&_={int(time.time()*1000)}'
@@ -129,6 +129,7 @@ def login():
 
             encrypted_password = encryptAES_local(plain_password_input, password_salt)
 
+            # 第三步：构造登录表单数据
             login_data = {
                 "username": username_input,
                 "password": encrypted_password,
@@ -141,6 +142,7 @@ def login():
             if need_captcha:
                 login_data["captchaResponse"] = captcha_value
 
+            # 第四步：POST 请求模拟登录
             post_headers = base_headers.copy()
             post_headers.update({
                 "Origin": "https://uis.nbu.edu.cn",
