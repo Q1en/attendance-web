@@ -35,7 +35,7 @@
         <div class="signin-options">
             <h4>签到方式:</h4> <div class="form-group">
                 <input type="radio" id="action_brute" name="action_type" value="brute_force" checked>
-                <label for="action_brute">自动签到</label> </div>
+                <label for="action_brute">尝试签到 (暴力破解)</label> </div>
              <div class="form-group">
                  <input type="radio" id="action_manual" name="action_type" value="manual">
                  <label for="action_manual">使用签到码签到:</label> <input type="number" id="manual_code" name="manual_code" min="0" max="9999" step="1" placeholder="0000" pattern="\d{4}">
@@ -44,7 +44,7 @@
         </div>
 
         <button type="submit" class="btn" id="submit-button">执行签到</button> <div id="loading-indicator" style="display: none; margin-top: 10px;">
-             <p><strong>正在处理签到... 这可能需要一些时间，特别是自动签到。请稍候。</strong></p> <div class="spinner"></div>
+             <p><strong>正在处理签到... 这可能需要一些时间，特别是暴力破解。请稍候。</strong></p> <div class="spinner"></div>
          </div>
     </form>
 {% elif message %}
