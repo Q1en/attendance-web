@@ -14,8 +14,12 @@
     --error-bg: #f8d7da;
     --error-border: #f5c6cb;
     --error-text: #721c24;
-    --pending-color: #ffc107;
-    --ready-color: #28a745;
+    /* Updated and new status colors */
+    --ready-color: #007bff; 
+    --pending-color: #adb5bd; 
+    --signed-color: #28a745; 
+    --late-color: #ffc107; 
+    --leave-color: #17a2b8; 
 }
 
 body {
@@ -219,13 +223,26 @@ h2, h3, h4 {
     font-size: 0.9em;
     /* color: #555;  -- Let specific status classes handle color */
 }
-.status-ready {
-    color: var(--ready-color);
-    font-weight: bold;
-}
-.status-pending {
-     color: var(--pending-color);
-     font-weight: bold;
+/* Updated and new status styles */
+.status-ready { 
+    color: var(--ready-color); 
+    font-weight: bold; 
+} 
+.status-pending { 
+    color: var(--pending-color); 
+    font-weight: bold; 
+} 
+.status-signed { 
+    color: var(--signed-color); 
+    font-weight: bold; 
+} 
+.status-late { 
+    color: var(--late-color); 
+    font-weight: bold; 
+} 
+.status-leave { 
+    color: var(--leave-color); 
+    font-weight: bold; 
 }
 
 
