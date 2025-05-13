@@ -14,8 +14,16 @@
             <div class="course-item">
                 <input type="radio" id="{{ course.ui_id }}" name="selected_course" value="{{ course.ui_id }}" required {% if loop.first %}checked{% endif %}>
                 <label for="{{ course.ui_id }}">
-                    <strong>{{ course.get('courseName', '未知课程') }}</strong><br> 教师: {{ course.get('teacherName', '无') }}<br> 教室: {{ course.get('classroomName', '无') }}<br> 状态: <span class="status-{{ 'ready' if course.get('attendanceId') else 'pending' }}">
-                        {{ '签到已开始' if course.get('attendanceId') else '签到未开始' }} </span>
+                    <strong>{{ course.get('courseName', '未知课程') }}</strong><br>
+                    教师: {{ course.get('teacherName', '无') }}<br>
+                    教室: {{ course.get('classroomName', '无') }}<br>
+                    状态: {% set state = course.get('attendanceState') %}
+                         {% if state == 1 %}<span class="status-signed">已签到</span>
+                         {% elif state == 2 %}<span class="status-late">迟到</span>
+                         {% elif state == 3 %}<span class="status-leave">请假</span>
+                         {% elif state == 0 %}<span class="status-ready">签到已发起</span>
+                         {% else %}<span class="status-pending">签到未发起</span>
+                         {% endif %}
                     <input type="hidden" name="{{ course.ui_id }}_plan_id" value="{{ course.get('coursePlanId', '') }}">
                     <input type="hidden" name="{{ course.ui_id }}_att_id" value="{{ course.get('attendanceId', '') }}">
                 </label>
