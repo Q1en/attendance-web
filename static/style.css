@@ -17,7 +17,7 @@
     /* Updated and new status colors */
     --ready-color: #007bff; 
     --pending-color: #adb5bd; 
-    --signed-color: #67c23a; 
+    --signed-color: #28a745; 
     --late-color: #ffc107; 
     --leave-color: #3498db; 
 }
