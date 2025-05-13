@@ -145,9 +145,9 @@ async def _brute_force_runner_async(jsessionid_cookie, course_plan_id, attendanc
         return {"success": True, "message": f"签到成功! 找到签到码: {result_dict['success_code']}", "attempts": result_dict['total_attempts']}
     else:
         last_err = result_dict.get("last_error")
-        last_msg = result_dict.get("last_msg", "未收到具体错误消息。")
+        last_msg = result_dict.get("last_message", "未收到具体错误消息。")
         last_api_code = result_dict.get("last_api_code", "N/A")
-        error_msg = f"自动签到在 {result_dict['total_attempts']} 次尝试后未成功。"
+        error_msg = f"暴力破解在 {result_dict['total_attempts']} 次尝试后未成功。"
         if last_err:
              error_msg += f" 最后一个主要错误: {last_err}."
         else:
@@ -172,7 +172,7 @@ async def _single_sign_runner_async(jsessionid_cookie, course_plan_id, attendanc
         return {"success": True, "message": f"使用签到码 {course_code} 签到成功!"}
     else:
         last_err = result_dict.get("last_error")
-        last_msg = result_dict.get("last_msg", "未收到具体错误消息。")
+        last_msg = result_dict.get("last_message", "未收到具体错误消息。")
         last_api_code = result_dict.get("last_api_code", "N/A")
         error_msg = f"使用签到码 {course_code} 签到失败。"
         if last_err:
