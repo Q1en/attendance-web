@@ -169,12 +169,12 @@ async def _single_sign_runner_async(jsessionid_cookie, course_plan_id, attendanc
          await _attempt_code_async(session, int(course_code), course_plan_id, attendance_id, result_dict)
 
     if result_dict.get("found"):
-        return {"success": True, "message": f"使用签到码 {course_code} 签到成功!"}
+        return {"success": True, "message": f"使用签到码 {course_code:04d} 签到成功!"}
     else:
         last_err = result_dict.get("last_error")
         last_msg = result_dict.get("last_message", "未收到具体错误消息。")
         last_api_code = result_dict.get("last_api_code", "N/A")
-        error_msg = f"使用签到码 {course_code} 签到失败。"
+        error_msg = f"使用签到码 {course_code:04d} 签到失败。"
         if last_err:
              error_msg += f" 错误: {last_err}。"
         else:
