@@ -96,7 +96,7 @@
                 const attendanceIdInput = document.querySelector(`input[name="${courseId}_att_id"]`);
                 // 检查是否存在 attendanceId 且其值不为空
                 if (!attendanceIdInput || !attendanceIdInput.value) {
-                     alert('所选课程的签到尚未开始 (缺少 Attendance ID)。请刷新或选择其他课程。'); // 改为中文
+                     alert('所选课程的签到尚未发起 (缺少 Attendance ID)。请刷新或选择其他课程。'); // 改为中文
                      event.preventDefault(); // 阻止表单提交
                      return;
                 }
