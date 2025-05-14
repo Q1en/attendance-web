@@ -411,7 +411,7 @@ def signin():
             try:
                 code_int = int(manual_code)
                 if not (0 <= code_int <= 9999):
-                    raise ValueError("签到码必须在 0 到 9999 之间。")
+                    raise ValueError("签到码必须在 0000 到 9999 之间。")
                 manual_code_formatted = f"{code_int:04d}" # 格式化为四位
             except ValueError:
                  flash('输入的签到码无效。必须是 0000 到 9999 之间的数字。', 'error')
