@@ -74,7 +74,7 @@ async def _attempt_code_async(session, code, course_plan_id, attendance_id, resu
             try:
                 data = await response.json()
                 api_code = data.get('code')
-                message = data.get('message', '无消息')
+                message = data.get('msg', '无消息')
             except aiohttp.ContentTypeError:
                 api_code = -1 # 表示非 JSON 响应
                 message = f"非 JSON 响应 (状态码: {response.status})"
@@ -147,11 +147,11 @@ async def _brute_force_runner_async(jsessionid_cookie, course_plan_id, attendanc
         last_err = result_dict.get("last_error")
         last_msg = result_dict.get("last_message", "未收到具体错误消息。")
         last_api_code = result_dict.get("last_api_code", "N/A")
-        error_msg = f"暴力破解在 {result_dict['total_attempts']} 次尝试后未成功。"
+        error_msg = f"自动签到在 {result_dict['total_attempts']} 次尝试后未成功。"
         if last_err:
-             error_msg += f" 最后一个主要错误: {last_err}."
+             error_msg += f" 最后一个主要错误: {last_err}。"
         else:
-             error_msg += f" 最后一个 API 状态: {last_api_code} - {last_msg}."
+             error_msg += f" 最后一个 API 状态: {last_api_code} - {last_msg}。"
 
         return {"success": False, "error": error_msg, "attempts": result_dict['total_attempts']}
 
@@ -176,9 +176,9 @@ async def _single_sign_runner_async(jsessionid_cookie, course_plan_id, attendanc
         last_api_code = result_dict.get("last_api_code", "N/A")
         error_msg = f"使用签到码 {course_code} 签到失败。"
         if last_err:
-             error_msg += f" 错误: {last_err}."
+             error_msg += f" 错误: {last_err}。"
         else:
-             error_msg += f" API 状态: {last_api_code} - {last_msg}."
+             error_msg += f" API 状态: {last_api_code} - {last_msg}。"
         return {"success": False, "error": error_msg}
 
 

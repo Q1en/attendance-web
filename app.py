@@ -349,7 +349,7 @@ def signin():
 
     try: # 包裹签到逻辑调用，捕获意外错误
         if action_type == 'brute_force':
-            flash(f'开始为“{course_name}”进行暴力破解签到。这可能需要时间...', 'info')
+            flash(f'开始为“{course_name}”进行自动签到。这可能需要时间...', 'info')
             print(f"开始暴力破解 - PlanID: {course_plan_id}, AttID: {attendance_id}")
             result = run_brute_force_sign_in(jsessionid_cookie, course_plan_id, attendance_id)
 
@@ -384,14 +384,14 @@ def signin():
     if result:
         print(f"签到操作完成 - 结果: {result}") # 添加日志
         if result['success']:
-            flash(f"“{course_name}”签到成功: {result['message']}", 'success')
+            flash(f"{result['message']}", 'success')
             # 成功后，可以选择性地清除课程缓存以强制下次刷新，或者保留缓存
             # session.pop(SESSION_COURSES_KEY, None)
         else:
-            flash(f"“{course_name}”签到失败: {result['error']}", 'error')
-            attempts = result.get('attempts')
-            if attempts is not None:
-                 flash(f"总尝试次数: {attempts}", 'info')
+            flash(f"{result['error']}", 'error')
+            # attempts = result.get('attempts')
+            # if attempts is not None:
+            #      flash(f"总尝试次数: {attempts}", 'info')
     else:
         # 如果 result 为 None (理论上不应发生，除非上面逻辑有误)
         flash("签到操作未返回有效结果。", 'warning')
