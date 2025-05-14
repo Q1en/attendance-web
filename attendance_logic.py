@@ -193,7 +193,7 @@ def run_brute_force_sign_in(jsessionid_cookie, course_plan_id, attendance_id):
         # 如果需要，处理 asyncio 事件循环已在运行的情况（在简单的 Flask 应用中不太常见）
         return {"success": False, "error": f"Asyncio 运行时错误: {e}"}
     except Exception as e:
-         return {"success": False, "error": f"运行暴力破解时出错: {e}"}
+         return {"success": False, "error": f"运行自动签到时出错: {e}"}
 
 
 def run_single_sign_in(jsessionid_cookie, course_plan_id, attendance_id, course_code):
