@@ -341,7 +341,7 @@ def signin():
     course_name = selected_course.get('courseName', '未知课程')
 
     if not course_plan_id or not attendance_id:
-        flash(f'无法为“{course_name}”签到。签到可能尚未发起 (缺少 Plan ID 或 Attendance ID)。请刷新。', 'error')
+        flash(f'无法为“{course_name}”签到。签到可能尚未发起。请刷新。', 'error')
         return redirect(url_for('dashboard'))
 
     result = None
