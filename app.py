@@ -21,32 +21,6 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-replace-this
 
 SESSION_COURSES_KEY = 'current_courses'
 
-# --- 白名单配置 ---
-WHITELIST_FILE = "whitelist.txt"
-ALLOWED_USERS = set()
-
-def load_whitelist():
-    """从白名单文件加载授权用户。"""
-    global ALLOWED_USERS
-    try:
-        if os.path.exists(WHITELIST_FILE):
-            with open(WHITELIST_FILE, 'r', encoding='utf-8') as f:
-                ALLOWED_USERS = {line.strip() for line in f if line.strip()}
-            if not ALLOWED_USERS:
-                print(f"⚠️ [WHITELIST] 白名单文件 '{WHITELIST_FILE}' 为空。将没有用户能够登录。")
-            else:
-                print(f"✅ [WHITELIST] 已从 '{WHITELIST_FILE}' 加载 {len(ALLOWED_USERS)} 个授权用户。")
-        else:
-            # 如果白名单文件不存在，则不允许任何用户登录。
-            print(f"❌ [WHITELIST] 白名单文件 '{WHITELIST_FILE}' 未找到。将没有用户能够登录。")
-            ALLOWED_USERS = set() # 确保为空
-    except Exception as e:
-        print(f"❌ [WHITELIST] 加载白名单文件 '{WHITELIST_FILE}' 时发生错误: {e}")
-        ALLOWED_USERS = set() # 出错时确保为空，阻止所有登录
-
-load_whitelist() # 应用启动时加载白名单
-# --- 白名单配置结束 ---
-
 # --- 从 attendance_login.py 移入的加密相关方法 ---
 def randString_local(length):
     baseString = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678"
@@ -88,33 +62,7 @@ def login():
         username_input = request.form.get('username', '').strip()
         plain_password_input = request.form.get('password', '').strip()
 
-        # --- 白名单检查 ---
-        # 1. 检查白名单文件是否存在 (load_whitelist 已经处理了加载逻辑，这里主要判断是否配置)
-        #    如果 ALLOWED_USERS 为空，可能是文件不存在或文件为空。
-        #    为了安全，如果白名单文件不存在，load_whitelist 会使 ALLOWED_USERS 为空。
-        #    如果文件存在但为空，ALLOWED_USERS 也会为空。
-        #    因此，统一检查 ALLOWED_USERS 是否有内容。
-        
-        # 首先检查物理文件是否存在，如果不存在，则提示管理员配置
-        if not os.path.exists(WHITELIST_FILE):
-            flash('系统白名单功能已启用但配置文件丢失，请联系管理员。登录已禁用。', 'error')
-            print(f"❌ [AUTH] 用户 '{username_input}' 尝试登录失败: 白名单文件 '{WHITELIST_FILE}' 未找到。")
-            return render_template('login.html')
-
-        # 然后检查加载后的白名单是否为空
-        if not ALLOWED_USERS:
-            flash('系统白名单中没有授权用户，无法登录。请联系管理员。', 'error')
-            print(f"❌ [AUTH] 用户 '{username_input}' 尝试登录失败: 白名单为空或加载失败。")
-            return render_template('login.html')
-
-        # 2. 检查用户是否在白名单内
-        if username_input not in ALLOWED_USERS:
-            flash('您的账号未在授权名单中，无法登录。', 'error')
-            print(f"❌ [AUTH] 用户 '{username_input}' 尝试登录失败: 用户不在白名单中。")
-            return render_template('login.html')
-        # --- 白名单检查结束 ---
-
-        if not username_input or not plain_password_input: # 对密码进行非空检查
+        if not username_input or not plain_password_input:
             flash('用户名和密码均不能为空。', 'error')
             return render_template('login.html')
 
