@@ -5,5 +5,3 @@ gunicorn>=20.1 # 用于在 Docker 中运行应用
 beautifulsoup4>=4.9
 pycryptodome>=3.9
 lxml>=4.6
-pytesseract>=0.3.10
-Pillow>=10.0.0

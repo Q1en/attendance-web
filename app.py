@@ -3,7 +3,6 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 # 确保从我们创建的 attendance_logic.py 文件导入
 from attendance_logic import get_courses, run_brute_force_sign_in, run_single_sign_in
-from captcha_solver import preprocess_image, recognize_text_from_image
 
 # 新增导入
 import requests
@@ -56,30 +55,27 @@ def randString_local(length):
     return data
 
 def encryptAES_local(password, key):
-    randStrLen = 64
-    randIvLen = 16
-    ranStr = randString_local(randStrLen)
-    ivStr = randString_local(randIvLen)
+    iv_str = randString_local(16)
     
     key_bytes = key.encode('utf-8')
-    iv_bytes = ivStr.encode('utf-8')
+    iv_bytes = iv_str.encode('utf-8')
 
     aes = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
-    data = ranStr + password
 
-    text_length = len(data.encode('utf-8'))
+    data_to_encrypt = randString_local(64) + password
+
+    text_length = len(data_to_encrypt.encode('utf-8'))
     amount_to_pad = AES.block_size - (text_length % AES.block_size)
     if amount_to_pad == 0:
         amount_to_pad = AES.block_size
     
     pad_char = chr(amount_to_pad)
-    data_padded = data + pad_char * amount_to_pad
+    data_padded = data_to_encrypt + pad_char * amount_to_pad
 
     encrypted_bytes = aes.encrypt(data_padded.encode('utf-8'))
     
-    text_base64_encoded = base64.encodebytes(encrypted_bytes)
-    text_final = text_base64_encoded.decode('utf-8').strip()
-    return text_final
+    text_base64_encoded = base64.b64encode(encrypted_bytes).decode('utf-8').strip()
+    return text_base64_encoded
 # --- 加密相关方法结束 ---
 
 @app.route('/', methods=['GET', 'POST'])
@@ -126,59 +122,31 @@ def login():
 
         try:
             # 第一步：GET 请求登录页面
-            response_login_page = req_session.get(login_page_url, headers=base_headers, timeout=10)
+            response_login_page = req_session.get(login_page_url, headers=base_headers, timeout=15, verify=False)
             response_login_page.raise_for_status()
             soup = BeautifulSoup(response_login_page.text, 'lxml')
-            lt_input = soup.find('input', {'name': 'lt'})
-            execution_input = soup.find('input', {'name': 'execution'})
-            salt_input = soup.find('input', {'id': 'pwdDefaultEncryptSalt'})
+            
+            login_form_div = soup.find('div', {'id': 'pwdLoginDiv'})
+
+            if not login_form_div:
+                flash('登录失败：在页面中未能找到账号登录表单区域，学校登录页面可能已更新。', 'error')
+                print("❌ 错误：在页面中未能找到ID为 'pwdLoginDiv' 的账号登录表单区域。")
+                return render_template('login.html')
+
+            lt_input = login_form_div.find('input', {'name': 'lt'})
+            execution_input = login_form_div.find('input', {'name': 'execution'})
+            salt_input = login_form_div.find('input', {'id': 'pwdEncryptSalt'})
 
             if not lt_input or not execution_input or not salt_input:
                 flash('登录失败：未能从登录页面提取必要参数，学校登录页面可能已更新。', 'error')
+                print("❌ 错误：在账号登录表单中未能完整获取到 lt, execution 或 pwdEncryptSalt。")
                 return render_template('login.html')
 
             lt = lt_input.get('value')
             execution = execution_input.get('value')
             password_salt = salt_input.get('value')
 
-            # 第二步：判断是否需要验证码
-            need_captcha = False
-            try:
-                captcha_check_url = f'https://uis.nbu.edu.cn/authserver/needCaptcha.html?username={username_input}&_={int(time.time()*1000)}'
-                captcha_check_resp = req_session.get(captcha_check_url, headers=base_headers, timeout=10, verify=False)
-                captcha_check_resp.raise_for_status()
-                need_captcha = "true" in captcha_check_resp.text.lower()
-            except Exception as e:
-                # 网络异常时，默认需要验证码以保证安全
-                need_captcha = True
-
-            captcha_value = ""
-            if need_captcha:
-                # 获取验证码图片并自动识别
-                captcha_img_url = f'https://uis.nbu.edu.cn/authserver/captcha.html?{int(time.time()*1000)}'
-                captcha_img_resp = req_session.get(captcha_img_url, headers=base_headers, timeout=10, verify=False)
-                if captcha_img_resp.status_code == 200:
-                    temp_captcha_filename = "web_temp_captcha.jpg"
-                    with open(temp_captcha_filename, 'wb') as f:
-                        f.write(captcha_img_resp.content)
-                    processed_image = preprocess_image(temp_captcha_filename)
-                    if processed_image:
-                        recognized_text = recognize_text_from_image(processed_image, lang='eng')
-                        if recognized_text:
-                            captcha_value = recognized_text
-                        else:
-                            flash('验证码识别失败，请重试。', 'error')
-                            return render_template('login.html')
-                    else:
-                        flash('验证码图片预处理失败，请重试。', 'error')
-                        return render_template('login.html')
-                    os.remove(temp_captcha_filename)
-                    if os.path.exists("processed_captcha.png"):
-                        os.remove("processed_captcha.png")
-                else:
-                    flash('获取验证码图片失败，请重试。', 'error')
-                    return render_template('login.html')
-
+            # 第二步：使用从页面获取的盐加密密码
             encrypted_password = encryptAES_local(plain_password_input, password_salt)
 
             # 第三步：构造登录表单数据
@@ -191,8 +159,6 @@ def login():
                 "_eventId": "submit",
                 "rmShown": "1"
             }
-            if need_captcha:
-                login_data["captchaResponse"] = captcha_value
 
             # 第四步：POST 请求模拟登录
             post_headers = base_headers.copy()
@@ -202,7 +168,7 @@ def login():
                 "Content-Type": "application/x-www-form-urlencoded"
             })
             login_post_url = login_page_url
-            response_login = req_session.post(login_post_url, headers=post_headers, data=login_data, allow_redirects=False, timeout=10)
+            response_login = req_session.post(login_post_url, headers=post_headers, data=login_data, allow_redirects=False, timeout=20, verify=False)
 
             # 第五步：处理重定向，提取 ticket
             if response_login.status_code == 302:
