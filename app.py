@@ -46,6 +46,43 @@ def load_whitelist():
 load_whitelist() # 应用启动时加载白名单
 # --- 白名单配置结束 ---
 
+# --- 获取用户信息函数 ---
+def get_user_info(cookie: str):
+    """通过 cookie 获取用户信息。"""
+    url = 'https://attendance.nbu.edu.cn/api/user/get/user/info'
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
+        'Cookie': cookie
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        data = response.json()
+
+        if data.get("code") == 20000 and "data" in data:
+            student_info = data["data"].get("student", {})
+            return {
+                "xm": student_info.get("xm"),
+                "xh": student_info.get("xh"),
+                "yxmc": student_info.get("yxmc"),
+                "zymc": student_info.get("zymc"),
+                "bjmc": student_info.get("bjmc")
+            }
+        else:
+            error_msg = data.get("msg", "未知错误")
+            print(f"获取用户信息失败: {error_msg}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"用户信息接口请求异常: {e}")
+        return None
+    except Exception as e:
+        print(f"解析响应失败: {e}")
+        return None
+# --- 获取用户信息函数结束 ---
+
 # --- 从 attendance_login.py 移入的加密相关方法 ---
 def randString_local(length):
     baseString = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678"
@@ -414,7 +451,21 @@ def process_login_ticket(req_session, ticket):
         if jsession_id_found:
             print(f"✅ [LOGIN] 成功获取 JSESSIONID: {jsession_id_found[:10]}...")
             session['jsessionid'] = jsession_id_found # Flask session
-            
+
+            # --- 白名单验证 ---
+            user_info = get_user_info(f'JSESSIONID={jsession_id_found}')
+            if not user_info:
+                flash('获取用户信息失败，无法验证身份。', 'error')
+                print("❌ [QR_AUTH] 获取用户信息失败")
+                return render_template('login.html')
+
+            xh = user_info.get('xh')
+            if not xh or xh not in ALLOWED_USERS:
+                flash('您的账号未在授权名单中，无法登录。', 'error')
+                print(f"❌ [QR_AUTH] 用户 '{xh}' 尝试二维码登录失败: 用户不在白名单中。")
+                return render_template('login.html')
+            # --- 白名单验证结束 ---
+
             # 验证 JSESSIONID 并获取课程
             validation_result = get_courses(jsession_id_found)
             if validation_result['success']:
